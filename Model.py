@@ -1,4 +1,3 @@
-import logging.config
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
@@ -7,13 +6,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
-from time import sleep
-import time
 import gc
 import os
 import pyttsx3
 import json
+import time
+from time import sleep
 import logging
+import logging.config
 
 import Gemini
 from Gemini import GeminiTranscript
