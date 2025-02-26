@@ -1,1 +1,3 @@
 pyttsx3==2.98
+google.generativeai==0.8.4
+selenium==4.28.1
