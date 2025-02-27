@@ -15,9 +15,8 @@ from time import sleep
 import logging
 import logging.config
 
-import Gemini
-from Gemini import GeminiTranscript
-from CustomExeption import *
+from Models.Gemini import GeminiTranscript
+from CustomExeption.CustomExeption import *
 from typing import List, Tuple, Optional
 
 if not os.path.exists('log'):
@@ -27,19 +26,6 @@ logging.basicConfig(level=logging.INFO,
                     handlers=[logging.FileHandler(f"log/AI{int(time.time())}.log", encoding="utf-8")])
 
 logging.info("Starting program!")
-
-def chrome_default_option():
-    chrome_options = Options()
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--start-maximized")
-    chrome_options.add_experimental_option("prefs", {
-        "profile.default_content_setting_values.media_stream_mic": 1,
-        "profile.default_content_setting_values.media_stream_camera": 1,
-        "profile.default_content_setting_values.geolocation": 0,
-        "profile.default_content_setting_values.notifications": 1,})
-    logging.info("WebDriver initialized")
-
-    return chrome_options
 
 def reading_config(path: str = 'data/config.json'):
     try:
@@ -76,6 +62,8 @@ class VoiceAI:
                  credentials_path: str = 'data/credentials.json'):
 
         self.driver = driver
+        logging.info("WebDriver initialized")
+        
         self.account = verify(credentials_path)
         self.engine = pyttsx3.init()
         self.gemini_model = GeminiTranscript()

@@ -53,11 +53,11 @@ out/
 
 *.ipynb
 *.log
-*.keys
+*.key
 
 lab.py
-account.json
+credentials.json
+config.json
 log/
 data/
-keys/
 Test/
