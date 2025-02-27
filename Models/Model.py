@@ -63,7 +63,6 @@ class VoiceAI:
 
         self.driver = driver
         logging.info("WebDriver initialized")
-        
         self.account = verify(credentials_path)
         self.engine = pyttsx3.init()
         self.gemini_model = GeminiTranscript()
