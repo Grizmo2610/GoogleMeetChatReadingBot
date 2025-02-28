@@ -14,7 +14,6 @@ def main():
 
         seen_messages: set = set()
         chat_history: List[Tuple[str, str, str, str]] = []
-
         while True:
             try:
                 seen_messages, chat_history = ai.run(seen_messages, chat_history)

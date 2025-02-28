@@ -2,7 +2,7 @@ import google.generativeai as genai
 from google.generativeai import ChatSession
 import os
 
-path = 'data/keys/gemini.key' # Path to your file that contain your API KEY
+path = 'configurations/keys/gemini.key' # Path to your file that contain your API KEY
 try:
     with open(path, 'r') as file:
         lines = file.readlines()
@@ -32,7 +32,8 @@ class GeminiTranscript:
         self.key = key
         genai.configure(api_key=self.key)
     
-    def respone(self, text: str, prompt: str = ''):
+    def respone(self, text: str):
+        prompt = 'Please answer as short as you can:'
         response =  self.session.send_message(f"{prompt}\n{text}\n")
         final = ''
         for chunk in response:

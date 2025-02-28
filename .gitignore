@@ -54,10 +54,13 @@ out/
 *.ipynb
 *.log
 *.key
+*.mp3
+*.zip
 
 lab.py
 credentials.json
 config.json
 log/
 data/
+voices/
 Test/

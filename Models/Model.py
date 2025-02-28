@@ -8,7 +8,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 import gc
 import os
-import pyttsx3
+# import pyttsx3
 import json
 import time
 from time import sleep
@@ -17,6 +17,8 @@ import logging.config
 
 from Models.Gemini import GeminiTranscript
 from CustomExeption.CustomExeption import *
+from Models.VoiceModel import GoogleTextToSpeechModel as Engine
+from Models.VoiceModel import STATUS
 from typing import List, Tuple, Optional
 
 if not os.path.exists('log'):
@@ -27,7 +29,7 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info("Starting program!")
 
-def reading_config(path: str = 'data/config.json'):
+def reading_config(path: str = 'configurations/config.json'):
     try:
         logging.info("Reading configuration file")
         with open(path, 'r') as f:
@@ -39,7 +41,13 @@ def reading_config(path: str = 'data/config.json'):
         dir_path = os.path.dirname(norm_path)
         if dir_path:
             os.makedirs(dir_path)
-        config = {"speed_rate": 150, "lang": "Vietnam"}
+        config = {
+            "PATH": "audio.mp3",
+            "REMOVE": True,
+            "SPEED": 1.0,
+            "LANG": "vi"
+            }
+        
         with open(path, 'w') as f:
             json.dump(config, f, indent=4)
         logging.info("Default configuration file created")
@@ -64,28 +72,22 @@ class VoiceAI:
         self.driver = driver
         logging.info("WebDriver initialized")
         self.account = verify(credentials_path)
-        self.engine = pyttsx3.init()
+        # self.engine = pyttsx3.init()
+        self.engine = Engine('vi')
         self.gemini_model = GeminiTranscript()
         self.config_path = config_path
 
     def config_chatbot(self):
         config = reading_config(self.config_path)
-        self.__config_chatbot(config)
-
-    def __config_chatbot(self, config: dict):
         try:
-            if self.engine.getProperty('rate') != config['speed_rate']:
-                self.engine.setProperty("rate", config['speed_rate'])
-                logging.info(f"Speed set to: {config['speed_rate']}")
-            voices = self.engine.getProperty('voices')
-            for voice in voices:
-                if config['lang'] in voice.name:
-                    self.engine.setProperty("voice", voice.id)
-                    break
+            status = self.engine.config_voice(config)
+            for k, v in status.items():
+                if v == STATUS.CHANGE:
+                    logging.info(f"{k} set to: {config[k]}")
+                elif v == STATUS.INVALID:
+                    logging.info(f"{k}Is not a valid key, config failed")
         except KeyError as e:
-            config = {"speed_rate": 150, "lang": "Vietnam"}
             logging.info("Invalid config setting")
-            logging.info("Default configuration file created")
 
     def join_meeting(self):
         self.__login()
@@ -112,7 +114,7 @@ class VoiceAI:
             logging.error(f"Login failed: {e}")
             raise e
 
-    def turnOffMicCam(self) -> None:
+    def __turnOffMicCam(self) -> None:
         logging.info("Attempting to turn off microphone and camera")
         wait = WebDriverWait(self.driver, 10)
         sleep(2)
@@ -142,10 +144,12 @@ class VoiceAI:
     def __join_meeting(self) -> None:
         logging.info(f"Joining Google Meet with link: {self.account['meeting_link']}")
         self.driver.get(self.account['meeting_link'])
-        sleep(2)
+        
+        sleep(0.5)
+        
         self.driver.get(self.account['meeting_link'])
 
-        self.turnOffMicCam()
+        self.__turnOffMicCam()
 
         wait = WebDriverWait(self.driver, 10)
         try:
@@ -184,8 +188,6 @@ class VoiceAI:
 
             except Exception:
                 continue
-
-        logging.info(f"Retrieved {len(chat_data)} chat messages")
         return sorted(chat_data, key=lambda x: x[0])
 
     def process_and_read_messages(self, chat_data: List[Tuple[str, str, str, str]], history: List[Tuple[str, str, str, str]]) -> None:
@@ -194,23 +196,21 @@ class VoiceAI:
                 logging.info(f"New chat message: [{timestamp}] {name}: {text}")
 
                 if len(history) < 2 or history[-1][1] != name or history[-1][0] != timestamp:
-                    self.engine.say(name)
-                    self.engine.runAndWait()
+                    self.engine.speech(name)
 
                 flag = False
                 if text.startswith('/respone'):
                     text = text.replace('/respone','')
                     flag = True
 
-                self.engine.say(text)
-                self.engine.runAndWait()
+                self.engine.speech(text)
 
                 if flag:
                     respone = self.gemini_model.respone(text)
-                    self.engine.say('Tôi sẽ trả lời câu hỏi của bạn như sau: ' + respone)
-                    self.engine.runAndWait()
+                    self.engine.speech('Tôi sẽ trả lời câu hỏi của bạn như sau: ' + respone)
+                    
     def run(self,seen_messages: set = set(), chat_history: List[Tuple[str, str, str, str]] = [], limit_message: int = -1):
-
+        self.config_chatbot()
         chat_data = self.get_chat_messages()
         new_messages = [(t, n, m, txt) for (t, n, m, txt) in chat_data if m not in seen_messages]
         seen_messages.update(m for (_, _, m, _) in new_messages)
@@ -220,12 +220,11 @@ class VoiceAI:
                 chat_history.extend(new_messages)
             sleep(0.1)
         except Exception as e:
-            self.driver.quit()
             logging.error(f"Meeting error: {e}")
+            self.release()
             raise Exception("Meeting ended. Chrome tab closed")
         finally:
             gc.collect()
-            self.config_chatbot()
             if limit_message != -1:
                 if len(chat_history) >= limit_message:
                     raise LimitReach()
@@ -234,4 +233,3 @@ class VoiceAI:
 
     def release(self):
         self.driver.quit()
-
