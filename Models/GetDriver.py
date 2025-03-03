@@ -10,6 +10,7 @@ class DriverType(Enum):
     CHROME = "chrome"
     FIREFOX = "firefox"
     SAFARI = "safari"
+    OTHER = "other"  # Other web browser
 
 def get_default_options(driver_type: DriverType):
     options_mapping = {
@@ -17,6 +18,7 @@ def get_default_options(driver_type: DriverType):
         DriverType.EDGE: EdgeOptions,
         DriverType.FIREFOX: FirefoxOptions,
         DriverType.SAFARI: SafariOptions,
+        DriverType.OTHER: ChromeOptions,  # Using ChromeOptions
     }
     
     options = options_mapping.get(driver_type, ChromeOptions)()
@@ -30,18 +32,24 @@ def get_default_options(driver_type: DriverType):
             "profile.default_content_setting_values.geolocation": 0,
             "profile.default_content_setting_values.notifications": 1,
         })
+        if driver_type == DriverType.OTHER:
+            options.binary_location = "C:\\Program Files\\CocCoc\\Browser\\Application\\browser.exe"  # Path to your browser
+
     elif isinstance(options, FirefoxOptions):
         options.set_preference("permissions.default.microphone", 1)
         options.set_preference("permissions.default.camera", 1)
-        options.set_preference("permissions.default.geo", 2)  # 2 = Chặn truy cập
+        options.set_preference("permissions.default.geo", 2)
         options.set_preference("dom.webnotifications.enabled", True)
     
     return options
 
 def get_driver(driver_type: DriverType):
-    return {
+    driver_mapping = {
         DriverType.EDGE: webdriver.Edge,
         DriverType.FIREFOX: webdriver.Firefox,
         DriverType.CHROME: webdriver.Chrome,
         DriverType.SAFARI: webdriver.Safari,
-    }.get(driver_type, webdriver.Chrome)(options=get_default_options(driver_type))
+        DriverType.OTHER: webdriver.Chrome,  # Using ChromeDriver for other
+    }
+    
+    return driver_mapping.get(driver_type, webdriver.Chrome)(options=get_default_options(driver_type))
