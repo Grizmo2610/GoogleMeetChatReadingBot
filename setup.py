@@ -28,12 +28,18 @@ def install_ffmpeg_linux():
     os.system("sudo apt update && sudo apt install -y ffmpeg")
     print("FFmpeg installed on Linux.")
 
+def install_ffmpeg_macos():
+    os.system("brew install ffmpeg")
+    print("FFmpeg installed on macOS.")
+
 def install_ffmpeg():
     system_name = platform.system()
     if system_name == "Windows":
         install_ffmpeg_windows()
     elif system_name == "Linux":
         install_ffmpeg_linux()
+    elif system_name == "Darwin":
+        install_ffmpeg_macos()
     else:
         print("Unsupported OS for FFmpeg installation.")
 
