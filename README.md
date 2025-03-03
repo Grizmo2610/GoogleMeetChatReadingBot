@@ -168,7 +168,7 @@ This tool enhances online presentations by ensuring that chat messages are never
 
 # **AUTHOR INFORMATION**  
 
-- **Developer:** Hoàng Tuấn Tú | Grizmo
+- **Developer:** Hoàng Tuấn Tú | Tu Hoang | Grizmo
 - **Nationality** Vietnamese
 - **Contact:** hoangtuantu893@gmail.com
 - **GitHub Repository:** https://github.com/Grizmo2610
