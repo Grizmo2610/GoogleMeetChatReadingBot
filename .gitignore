@@ -61,6 +61,7 @@ lab.py
 credentials.json
 config.json
 log/
+logs/
 data/
 voices/
 Test/

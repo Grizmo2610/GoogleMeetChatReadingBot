@@ -175,3 +175,17 @@ This tool enhances online presentations by ensuring that chat messages are never
 - **License:** MIT License
 
 Feel free to contribute, report issues, or suggest improvements!
+
+# **PYTHON VERSION REQUIREMENT**
+
+This project requires Python 3.11, Different vertion might not working well. You can check your Python version using the following command:
+```bash
+python --version
+```
+or 
+
+```bash
+python3 --version
+```
+
+If Python is not installed or needs an update, download the latest version from [python.org](https://www.python.org/downloads/).

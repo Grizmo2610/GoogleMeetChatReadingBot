@@ -22,6 +22,7 @@ def main():
     """Main function to initialize WebDriver and automate Google Meet."""
     os_name = platform.system()
     driver = get_driver(get_browser(os_name))  # Initialize WebDriver
+    # driver = get_driver(driver_type=DriverType.CHROME)  # Initialize WebDriver
     ai = VoiceAI(driver, CONFIG_PATH, CREDENTIALS_PATH)
 
     try:

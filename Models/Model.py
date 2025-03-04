@@ -21,11 +21,11 @@ from Models.VoiceModel import GoogleTextToSpeechModel as Engine
 from Models.VoiceModel import STATUS
 from typing import List, Tuple, Optional
 
-if not os.path.exists('log'):
-    os.makedirs('log')
+if not os.path.exists('logs'):
+    os.makedirs('logs')
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s",
-                    handlers=[logging.FileHandler(f"log/AI{int(time.time())}.log", encoding="utf-8")])
+                    handlers=[logging.FileHandler(f"logs/AI{int(time.time())}.log", encoding="utf-8")])
 
 logging.info("Starting program!")
 
@@ -42,7 +42,6 @@ def reading_config(path: str = 'configurations/config.json'):
         if dir_path:
             os.makedirs(dir_path)
         config = {
-            "PATH": "audio.mp3",
             "REMOVE": True,
             "SPEED": 1.0,
             "LANG": "vi"
@@ -53,7 +52,7 @@ def reading_config(path: str = 'configurations/config.json'):
         logging.info("Default configuration file created")
     return config
 
-def verify(credentials_path: str = 'data/credentials.json'):
+def verify(credentials_path: str = 'configurations/credentials.json'):
     try:
         logging.info("Loading credentials file")
         with open(credentials_path, "r") as f:
@@ -64,10 +63,17 @@ def verify(credentials_path: str = 'data/credentials.json'):
         raise FFE  # Stop execution if credentials file is missing
     return account
 
+
+def status_log(status: list[dict]):
+    for item in status:
+        if item['status'] == STATUS.NORMAL:
+            logging.info(item['message'])
+        else:
+            logging.error(item['message'])
 class VoiceAI:
     def __init__(self, driver: WebDriver,
-                 config_path: str = 'data/config.json',
-                 credentials_path: str = 'data/credentials.json'):
+                 config_path: str = 'configurations/config.json',
+                 credentials_path: str = 'configurations/credentials.json'):
 
         self.driver = driver
         logging.info("WebDriver initialized")
@@ -88,6 +94,7 @@ class VoiceAI:
                     logging.info(f"{k}Is not a valid key, config failed")
         except KeyError as e:
             logging.info("Invalid config setting")
+            logging.error(e)
 
     def join_meeting(self):
         self.__login()
@@ -152,19 +159,13 @@ class VoiceAI:
         self.__turnOffMicCam()
 
         wait = WebDriverWait(self.driver, 10)
-        try:
-            alert = self.driver.switch_to.alert
-            logging.info(f"Popup found: {alert.text}")
-            alert.dismiss()
-        except Exception as e:
-            logging.info("No popup found")
 
         try:
             button = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="yDmH0d"]/c-wiz/div/div/div[36]/div[4]/div[10]/div/div/div[3]/nav/div[3]/div')))
             button.click()
-            logging.info("Clicked on join button")
+            logging.info("Clicked on chat button")
         except Exception as e:
-            logging.warning("Join button not found", e)
+            logging.warning("Chat button not found", e)
 
     def get_chat_messages(self) -> List[Tuple[str, str, str, str]]:
         logging.info("Fetching chat messages from Google Meet")
@@ -186,13 +187,13 @@ class VoiceAI:
                     if text and message_id:
                         chat_data.append((timestamp, name, message_id, text))
 
-            except Exception:
-                continue
+            except Exception as e:
+                logging.error('Reading message error' + e)
         return sorted(chat_data, key=lambda x: x[0])
 
     def process_and_read_messages(self, chat_data: List[Tuple[str, str, str, str]], history: List[Tuple[str, str, str, str]]) -> None:
         for idx, (timestamp, name, message_id, text) in enumerate(chat_data):
-            if name != "Bạn" and not text.startswith("https:"):
+            if (name != "Bạn" and name != "You") and not text.startswith("https:"):
                 logging.info(f"New chat message: [{timestamp}] {name}: {text}")
 
                 if len(history) < 2 or history[-1][1] != name or history[-1][0] != timestamp:
@@ -203,11 +204,14 @@ class VoiceAI:
                     text = text.replace('/respone','')
                     flag = True
 
-                self.engine.speech(text)
-
+                status_log(self.engine.speech(text))
+                
                 if flag:
-                    respone = self.gemini_model.respone(text)
-                    self.engine.speech('Tôi sẽ trả lời câu hỏi của bạn như sau: ' + respone)
+                    try:
+                        respone = self.gemini_model.respone(text)
+                        status_log(self.engine.speech('Reply:' + respone))
+                    except Exception as e:
+                        logging.error(e)
                     
     def run(self,seen_messages: set = set(), chat_history: List[Tuple[str, str, str, str]] = [], limit_message: int = -1):
         self.config_chatbot()
@@ -219,15 +223,17 @@ class VoiceAI:
                 self.process_and_read_messages(new_messages, chat_history)
                 chat_history.extend(new_messages)
             sleep(0.1)
+            if limit_message != -1:
+                if len(chat_history) >= limit_message:
+                    raise LimitReach()
         except Exception as e:
             logging.error(f"Meeting error: {e}")
             self.release()
             raise Exception("Meeting ended. Chrome tab closed")
         finally:
-            gc.collect()
-            if limit_message != -1:
-                if len(chat_history) >= limit_message:
-                    raise LimitReach()
+            n = gc.collect()
+            if n != 0:
+                logging.info(f'{n} have been release')
 
         return seen_messages, chat_history
 
